@@ -1,0 +1,62 @@
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd"
+         version="5.0">
+
+  <display-name>Class-D Keijiban</display-name>
+
+  <servlet>
+    <servlet-name>BoardServlet</servlet-name>
+    <servlet-class>servlet.BoardServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>BoardServlet</servlet-name>
+    <url-pattern>/board</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>NewThreadServlet</servlet-name>
+    <servlet-class>servlet.NewThreadServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>NewThreadServlet</servlet-name>
+    <url-pattern>/new-thread</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>AddPostServlet</servlet-name>
+    <servlet-class>servlet.AddPostServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>AddPostServlet</servlet-name>
+    <url-pattern>/reply-add</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>ViewPostServlet</servlet-name>
+    <servlet-class>servlet.ViewPostServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ViewPostServlet</servlet-name>
+    <url-pattern>/thread</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>LoginServlet</servlet-name>
+    <servlet-class>servlet.LoginServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>LoginServlet</servlet-name>
+    <url-pattern>/login</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>LogoutServlet</servlet-name>
+    <servlet-class>servlet.LogoutServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>LogoutServlet</servlet-name>
+    <url-pattern>/logout</url-pattern>
+  </servlet-mapping>
+
+</web-app>
