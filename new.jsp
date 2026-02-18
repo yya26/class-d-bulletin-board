@@ -22,6 +22,16 @@ try{
     String title = Optional.ofNullable(request.getParameter("title")).orElse("").trim();
     String author = Optional.ofNullable(request.getParameter("author")).orElse("").trim();
     String body = Optional.ofNullable(request.getParameter("body")).orElse("").trim();
+    String imageData = Optional.ofNullable(request.getParameter("imageData")).orElse("").trim();
+    String fileData = Optional.ofNullable(request.getParameter("fileData")).orElse("").trim();
+    String fileName = Optional.ofNullable(request.getParameter("fileName")).orElse("").trim();
+    if(imageData.length()>0){
+      body = body + "<div class='imgwrap'><img src='"+imageData+"' /></div>";
+    }
+    if(fileData.length()>0){
+      String fname = (fileName==null||fileName.isEmpty()) ? "添付ファイル" : fileName.replaceAll("[<>\"']", "");
+      body = body + "<div class='filewrap'><a href='"+fileData+"' download='"+fname+"'>"+fname+"</a></div>";
+    }
     if(category.length()>0 && title.length()>0 && author.length()>0 && body.length()>0){
       Long catId = null;
       try(PreparedStatement ps = con.prepareStatement("SELECT id FROM categories WHERE name=?")){
@@ -78,7 +88,7 @@ try{
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Classroom 掲示板 - 新規スレッド</title>
-  <link rel="stylesheet" href="<%=request.getContextPath()%>/Classroom_Keijiban1111/styles.css" />
+  <link rel="stylesheet" href="<%=request.getContextPath()%>/css/newdesign.css" />
   <style>
     body{background:#f1f5f9;}
     .container{max-width:100%; margin:0; padding:0 16px;}
@@ -96,26 +106,29 @@ try{
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <div class="brand">
-        <div>
-          <h1>Classroom 掲示板</h1>
-          <small>新規スレッド作成</small>
-        </div>
-        <div class="top-actions">
-          <a class="btn secondary" href="index.jsp">← 戻る</a>
-        </div>
+  <div class="header pro-header">
+
+    <div class="brand-row">
+      <div class="title-block">
+        <h1 class="page-title">新規スレッドを作成</h1>
+       
       </div>
+
       <div class="navbar">
-        <div class="right">
-          <a class="btn" href="index.jsp">スレッド一覧</a>
-        </div>
+        <a class="btn secondary back-btn" href="index.jsp">
+          <span class="arrow">←</span> 戻る
+        </a>
       </div>
     </div>
+
+  </div>
+</div>
+
     <div class="grid two" style="margin-top:16px">
       <div class="card">
         <div class="pad">
-          <h2>新規スレッド</h2>
+          <h2></h2>
+          
           <form method="post" id="newThreadForm">
             <label class="label" for="category">カテゴリ</label>
             <select id="category" name="category" required>
@@ -138,6 +151,9 @@ try{
             </div>
             <label class="label" for="body">内容</label>
             <textarea id="body" name="body" placeholder="内容を書いてください" required></textarea>
+            
+           
+    
             <div class="actions">
               <button class="btn secondary" type="submit">投稿</button>
               <span class="notice">ログインなし・超シンプル</span>
@@ -151,18 +167,54 @@ try{
     (function(){
       var form=document.getElementById("newThreadForm");
       if(!form) return;
+      var imgInput=document.getElementById("imageUpload");
+      var imgData=document.getElementById("imageData");
+      if(imgInput && imgData){
+        imgInput.addEventListener("change", function(){
+          try{
+            var f=this.files && this.files[0];
+            if(!f){ imgData.value=""; return; }
+            if(!/^image\//.test(f.type)){ alert("画像ファイルを選択してください"); this.value=""; imgData.value=""; return; }
+            if(f.size>2*1024*1024){ alert("画像サイズは2MB以下にしてください"); this.value=""; imgData.value=""; return; }
+            var r=new FileReader();
+            r.onload=function(){ imgData.value = r.result || ""; };
+            r.readAsDataURL(f);
+          }catch(e){ imgData.value=""; }
+        });
+      }
+      var fileInput=document.getElementById("fileUpload");
+      var fileData=document.getElementById("fileData");
+      var fileName=document.getElementById("fileName");
+      if(fileInput && fileData && fileName){
+        fileInput.addEventListener("change", function(){
+          try{
+            var f=this.files && this.files[0];
+            if(!f){ fileData.value=""; fileName.value=""; return; }
+            if(f.size>5*1024*1024){ alert("ファイルサイズは5MB以下にしてください"); this.value=""; fileData.value=""; fileName.value=""; return; }
+            var r=new FileReader();
+            r.onload=function(){ fileData.value = r.result || ""; fileName.value = f.name || ""; };
+            r.readAsDataURL(f);
+          }catch(e){ fileData.value=""; fileName.value=""; }
+        });
+      }
       form.addEventListener("submit", function(){
         try{
           var cat=document.getElementById("category")?.value||"";
           var ttl=document.getElementById("title")?.value||"";
           var au=document.getElementById("author")?.value||"";
           var bd=document.getElementById("body")?.value||"";
+          var img=document.getElementById("imageData")?.value||"";
+          var fdata=document.getElementById("fileData")?.value||"";
+          var fname=document.getElementById("fileName")?.value||"";
           if(!cat||!ttl||!au||!bd) return;
           var raw=localStorage.getItem("classd_fallback_threads");
           var arr=[]; try{arr=JSON.parse(raw)||[];}catch(e){arr=[];}
           var now=new Date().toISOString();
           var nextId=arr.length>0 ? Math.max.apply(null, arr.map(function(x){return Number(x.id)||0;}))+1 : 1;
-          arr.push({id: nextId, title: ttl, category: cat, author: au, created_at: now, updated_at: now, reply_count: 0});
+          var full = bd;
+          if(img) full += "<div class='imgwrap'><img src='"+img+"' /></div>";
+          if(fdata) full += "<div class='filewrap'><a href='"+fdata+"' download='"+(fname||"添付ファイル")+"'>"+(fname||"添付ファイル")+"</a></div>";
+          arr.push({id: nextId, title: ttl, category: cat, author: au, content: full, created_at: now, updated_at: now, reply_count: 0});
           localStorage.setItem("classd_fallback_threads", JSON.stringify(arr));
           localStorage.setItem("classd_last_thread_id", String(nextId));
         }catch(e){}
