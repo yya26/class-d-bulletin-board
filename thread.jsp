@@ -12,11 +12,11 @@ try{ id = Long.parseLong(Optional.ofNullable(request.getParameter("id")).orElse(
 if(id<=0){
 %>
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8" /><link rel="stylesheet" href="Classroom_Keijiban1111/styles.css" /><title>Thread</title></head><body><div class="container"><div class="card"><div class="pad">Thread not found. <a href="index.jsp">Back</a></div></div></div></body></html>
+<html lang="ja"><head><meta charset="utf-8" /><link rel="stylesheet" href="css/thread.css" /><title>Thread</title></head><body><div class="container"><div class="card"><div class="pad">Thread not found. <a href="index.jsp">Back</a></div></div></div></body></html>
 <%
   return;
 }
-String title=null, category=null, author=null;
+String title=null, category=null, author=null, threadContent=null;
 java.sql.Timestamp created=null, updated=null;
 List<Map<String,Object>> posts = new ArrayList<>();
 try{
@@ -25,18 +25,17 @@ try{
   if("POST".equalsIgnoreCase(request.getMethod())){
     String replyAuthor = Optional.ofNullable(request.getParameter("replyAuthor")).orElse("").trim();
     String replyBody = Optional.ofNullable(request.getParameter("replyBody")).orElse("").trim();
-    String imageData = Optional.ofNullable(request.getParameter("imageData")).orElse("").trim();
+    
     if(replyAuthor.length()>0 && replyBody.length()>0){
-      try(PreparedStatement ps = con.prepareStatement("INSERT INTO replies(thread_id,author_name,content,created_at) VALUES(?,?,?,SYSDATE)")){
-        ps.setLong(1, id);
-        ps.setString(2, replyAuthor);
-        if(imageData.length()>0){
-          ps.setString(3, replyBody + "<div class='imgwrap'><img src='"+imageData+"' /></div>");
-        }else{
-          ps.setString(3, replyBody);
-        }
-        ps.executeUpdate();
-      }
+      try(PreparedStatement ps = con.prepareStatement(
+    "INSERT INTO replies(thread_id,author_name,content,created_at) VALUES(?,?,?,SYSDATE)"
+)){
+    ps.setLong(1, id);
+    ps.setString(2, replyAuthor);
+    ps.setString(3, replyBody);
+    ps.executeUpdate();
+}
+
       try(PreparedStatement ps = con.prepareStatement("UPDATE threads SET updated_at=SYSDATE WHERE id=?")){
         ps.setLong(1, id);
         ps.executeUpdate();
@@ -45,12 +44,13 @@ try{
       return;
     }
   }
-  try(PreparedStatement ps = con.prepareStatement("SELECT t.title,t.author_name,t.created_at,t.updated_at,c.name AS category FROM threads t LEFT JOIN categories c ON c.id=t.category_id WHERE t.id=?")){
+  try(PreparedStatement ps = con.prepareStatement("SELECT t.title,t.author_name,t.content,t.created_at,t.updated_at,c.name AS category FROM threads t LEFT JOIN categories c ON c.id=t.category_id WHERE t.id=?")){
     ps.setLong(1, id);
     try(ResultSet rs = ps.executeQuery()){
       if(rs.next()){
         title = rs.getString("title");
         author = rs.getString("author_name");
+        threadContent = rs.getString("content");
         created = rs.getTimestamp("created_at");
         updated = rs.getTimestamp("updated_at");
         category = rs.getString("category");
@@ -73,6 +73,20 @@ try{
 } catch(Exception ex){
   // allow client-side fallback rendering
 }
+String headerPreview = null;
+try{
+  String src = null;
+  if(!posts.isEmpty()){
+    src = (String)posts.get(posts.size()-1).get("content");
+  }
+  if(src==null || src.trim().isEmpty()){
+    src = threadContent;
+  }
+  if(src!=null){
+    headerPreview = src.replaceAll("<[^>]*>", " ").replaceAll("\\s+"," ").trim();
+    if(headerPreview.length()>60) headerPreview = headerPreview.substring(0,60) + "…";
+  }
+}catch(Exception e){}
 %>
 <!doctype html>
 <html lang="ja">
@@ -80,127 +94,121 @@ try{
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Classroom 掲示板 - スレッド</title>
-  <link rel="stylesheet" href="<%=request.getContextPath()%>/Classroom_Keijiban1111/styles.css" />
-  <style>
-    body{background:#f1f5f9;}
-    .container{max-width:100%; margin:0; padding:0 16px;}
-    .header{background:#ffffff; border:1px solid #e5e7eb; border-radius:16px; padding:18px; margin:12px 0;}
-    .brand{display:flex; justify-content:space-between; align-items:center;}
-    .top-actions{display:flex; gap:8px;}
-    .card{width:100%; background:#ffffff; border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 2px 6px rgba(0,0,0,0.04);}
-    .pad{padding:18px;}
-    .badge{background:#f1f5f9; border:1px solid #e2e8f0; padding:4px 10px; border-radius:999px;}
-    .table-head{background:#eaf2ff; border:1px solid #d6e4ff; border-top-left-radius:12px; border-top-right-radius:12px; padding:10px 16px; color:#334155; font-weight:600;}
-    table{width:100%;}
-    table thead th{background:#eef2ff; border-bottom:1px solid #e5e7eb;}
-    thead th:nth-child(1), thead th:nth-child(4){text-align:center;}
-    thead th:nth-child(2), td:nth-child(2){text-align:left;}
-    thead th:nth-child(3), td:nth-child(3){text-align:left;}
-    #postsBody tr td{padding-top:12px; padding-bottom:12px;}
-    form label.label{display:block; margin-top:10px; margin-bottom:6px; color:#334155;}
-    form input, form textarea{width:100%; border:1px solid #e2e8f0; border-radius:12px; padding:10px 12px; background:#f8fafc;}
-    form textarea{min-height:140px; background:#ffffff;}
-    .actions{display:flex; align-items:center; gap:12px; margin-top:14px;}
-    .footer-note{margin:12px 4px; color:#64748b;}
-    .imgwrap{margin-top:10px}
-    .imgwrap img{max-width:100%; border-radius:12px; display:block}
-  </style>
-</head>
+ <link rel="stylesheet" href="<%=request.getContextPath()%>/css/thread.css" />
+
+
+
 <body>
   <div class="container" id="threadWrap">
+
+    <!-- ===== HEADER ===== -->
     <div class="header">
       <div class="brand">
-        <div>
-          <h1 class="thread-title" id="tTitle"><%= title %></h1>
-          <small id="tMeta"><%= (author!=null && created!=null) ? ("投稿者: "+author+" • 作成: "+new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(created)+" • 更新: "+new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(updated!=null?updated:created)) : "" %></small>
-        </div>
-        <div class="top-actions">
+
+        <!-- LEFT -->
+        <div class="brand-left">
           <span class="badge" id="tBadge"><%= category==null?"—":category %></span>
+          <h1 class="thread-title" id="tTitle"><%= title %></h1>
+          <small id="tMeta">
+            <%= (author!=null && created!=null)
+              ? ("投稿者: "+author+" • 内容: "+(headerPreview==null?"—":headerPreview)
+              +" • 作成: "+new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(created)
+              +" • 更新: "+new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(updated!=null?updated:created))
+              : "" %>
+          </small>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="top-actions">
           <button class="btn secondary" type="button" onclick="location.href='index.jsp'">← 戻る</button>
           <a class="btn secondary" href="new.jsp">+ 新規スレッド</a>
         </div>
-      </div>
-      <div class="navbar">
-        <div class="right">
-          <a class="btn" href="index.jsp">スレッド一覧</a>
-        </div>
+
       </div>
     </div>
+
+    <!-- ===== REPLY LIST ===== -->
     <div class="card" style="margin-top:16px">
       <div class="pad">
         <div class="table-head">返信一覧</div>
-        <table style="table-layout:fixed">
-          <colgroup>
-            <col style="width:80px" />
-            <col style="width:160px" />
-            <col />
-            <col style="width:170px" />
-          </colgroup>
-          <thead>
-            <tr>
-              <th style="width:80px">番号</th>
-              <th style="width:160px">名前</th>
-              <th>内容</th>
-              <th style="width:170px">日時</th>
-            </tr>
-          </thead>
-          <tbody id="postsBody">
-            <%
-            int idx = 1;
-            for(Map<String,Object> p: posts){
-            %>
-            <tr>
-              <td>#<%= idx++ %></td>
-              <td><%= (String)p.get("author") %></td>
-              <td><%= (String)p.get("content") %></td>
-              <td><%= new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format((java.sql.Timestamp)p.get("created_at")) %></td>
-            </tr>
-            <%
-            }
-            %>
-          </tbody>
-        </table>
+
+        <div id="postsList" class="reply-list">
+          <%
+          int idx = 1;
+          for(Map<String,Object> p: posts){
+          %>
+          <div class="reply">
+            <div class="reply-head">
+              <span class="num">#<%= idx++ %> <%= (String)p.get("author") %></span>
+              <span class="time">
+                <%= new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm")
+                      .format((java.sql.Timestamp)p.get("created_at")) %>
+              </span>
+            </div>
+            <div class="reply-body"><%= (String)p.get("content") %></div>
+          </div>
+          <% } %>
+        </div>
+
       </div>
     </div>
+
+    <!-- ===== REPLY FORM ===== -->
     <div class="card" style="margin-top:14px">
       <div class="pad">
         <h2>返信する</h2>
+
         <form method="post" id="replyForm">
+
           <div class="row">
-            <div>
-              <label class="label" for="replyAuthor">名前</label>
-              <input id="replyAuthor" name="replyAuthor" type="text" placeholder="名前" required />
-            </div>
+            <label class="label" for="replyAuthor">名前</label>
+            <input id="replyAuthor" name="replyAuthor" type="text" required />
           </div>
+
           <label class="label" for="replyBody">返信内容</label>
-          <textarea id="replyBody" name="replyBody" placeholder="返信を書いてください" required></textarea>
-          <label class="label" for="imageUpload">画像をアップロード</label>
-          <input id="imageUpload" type="file" accept="image/*" />
-          <input type="hidden" id="imageData" name="imageData" />
+          <textarea id="replyBody" name="replyBody" required></textarea>
+
           <div class="actions">
             <button class="btn secondary" type="submit">返信</button>
             <span class="notice">名前 + 返信だけ</span>
           </div>
+
         </form>
       </div>
     </div>
-    <div class="footer-note">Tip: 先生にスクショを見せればOK（BBSっぽい）</div>
+
+    <div class="footer-note">
   </div>
   <script>
     (function(){
-      var file=document.getElementById("imageUpload");
-      var hid=document.getElementById("imageData");
-      if(file && hid){
-        file.addEventListener("change", function(){
+      var imgInput=document.getElementById("imageUpload");
+      var imgData=document.getElementById("imageData");
+      if(imgInput && imgData){
+        imgInput.addEventListener("change", function(){
           try{
             var f=this.files && this.files[0];
-            if(!f){ hid.value=""; return; }
-            if(!/^image\//.test(f.type)){ alert("画像ファイルを選択してください"); this.value=""; hid.value=""; return; }
-            if(f.size>2*1024*1024){ alert("画像サイズは2MB以下にしてください"); this.value=""; hid.value=""; return; }
+            if(!f){ imgData.value=""; return; }
+            if(!/^image\//.test(f.type)){ alert("画像ファイルを選択してください"); this.value=""; imgData.value=""; return; }
+            if(f.size>2*1024*1024){ alert("画像サイズは2MB以下にしてください"); this.value=""; imgData.value=""; return; }
             var r=new FileReader();
-            r.onload=function(){ hid.value = r.result || ""; };
+            r.onload=function(){ imgData.value = r.result || ""; };
             r.readAsDataURL(f);
-          }catch(e){ hid.value=""; }
+          }catch(e){ imgData.value=""; }
+        });
+      }
+      var fileInput=document.getElementById("fileUpload");
+      var fileData=document.getElementById("fileData");
+      var fileName=document.getElementById("fileName");
+      if(fileInput && fileData && fileName){
+        fileInput.addEventListener("change", function(){
+          try{
+            var f=this.files && this.files[0];
+            if(!f){ fileData.value=""; fileName.value=""; return; }
+            if(f.size>5*1024*1024){ alert("ファイルサイズは5MB以下にしてください"); this.value=""; fileData.value=""; fileName.value=""; return; }
+            var r=new FileReader();
+            r.onload=function(){ fileData.value = r.result || ""; fileName.value = f.name || ""; };
+            r.readAsDataURL(f);
+          }catch(e){ fileData.value=""; fileName.value=""; }
         });
       }
     })();
@@ -224,31 +232,40 @@ try{
         var metaEl = document.getElementById("tMeta");
         titleEl.textContent = t.title||"";
         badgeEl.textContent = t.category||"";
-        metaEl.textContent = "投稿者: "+(t.author||"")+" • 作成: "+fmt(t.created_at)+" • 更新: "+fmt(t.updated_at||t.created_at);
-        var bodyEl = document.getElementById("postsBody");
+        (function(){
+          var rraw0 = localStorage.getItem("classd_fallback_replies");
+          var reps0 = []; try{reps0=JSON.parse(rraw0)||[];}catch(e){reps0=[];}
+          reps0 = reps0.filter(function(x){return Number(x.thread_id)===Number(threadId);}).sort(function(a,b){return String(a.created_at).localeCompare(String(b.created_at));});
+          var pvsrc0 = reps0.length>0 ? (reps0[reps0.length-1].content||"") : (t.content||"");
+          var pv0 = (pvsrc0||"").replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim();
+          if(pv0.length>60) pv0 = pv0.substring(0,60)+"…";
+          metaEl.textContent = "投稿者: "+(t.author||"")+" • 内容: "+(pv0||"—")+" • 作成: "+fmt(t.created_at)+" • 更新: "+fmt(t.updated_at||t.created_at);
+        })();
+        var bodyEl = document.getElementById("postsList");
         var rraw = localStorage.getItem("classd_fallback_replies");
         var reps = []; try{reps=JSON.parse(rraw)||[];}catch(e){reps=[];}
         reps = reps.filter(function(x){return Number(x.thread_id)===Number(threadId);}).sort(function(a,b){return String(a.created_at).localeCompare(String(b.created_at));});
         var idx=1;
         bodyEl.innerHTML = reps.map(function(p){
-          return "<tr>"
-            +"<td>#"+(idx++)+"</td>"
-            +"<td>"+esc(p.author||"")+"</td>"
-            +"<td>"+(esc(p.content||"") + (p.image_data ? "<div class=\\\"imgwrap\\\"><img src=\\\""+esc(p.image_data)+"\\\" /></div>" : ""))+"</td>"
-            +"<td>"+fmt(p.created_at)+"</td>"
-            +"</tr>";
-        }).join("") || "<tr><td colspan=\"4\" style=\"text-align:center; color:#64748b; padding:22px\">返信はまだありません。</td></tr>";
+          return "<div class=\\\"reply\\\">"
+            +"<div class=\\\"reply-head\\\"><span class=\\\"num\\\">#"+(idx++)+" "+esc(p.author||"")+"</span><span class=\\\"time\\\">"+fmt(p.created_at)+"</span></div>"
+            +"<div class=\\\"reply-body\\\">"+(esc(p.content||"") + (p.image_data ? "<div class=\\\"imgwrap\\\"><img src=\\\""+esc(p.image_data)+"\\\" /></div>" : "") + (p.file_data ? "<div class=\\\"filewrap\\\"><a href=\\\""+esc(p.file_data)+"\\\" download=\\\""+esc(p.file_name||'添付ファイル')+"\\\">"+esc(p.file_name||'添付ファイル')+"</a></div>" : ""))+"</div>"
+            +"</div>";
+        }).join("") || "<div style=\\\"text-align:center; color:#64748b; padding:22px\\\">返信はまだありません。</div>";
         var form = document.getElementById("replyForm");
         form.addEventListener("submit", function(ev){
           ev.preventDefault();
           var au = document.getElementById("replyAuthor").value.trim();
           var bd = document.getElementById("replyBody").value.trim();
-          var img = document.getElementById("imageData").value || "";
+         var img = "";
+var fdata = "";
+var fname = "";
+
           if(!au || !bd) return;
           var now = new Date().toISOString();
           var rraw2 = localStorage.getItem("classd_fallback_replies");
           var reps2 = []; try{reps2=JSON.parse(rraw2)||[];}catch(e){reps2=[];}
-          reps2.push({thread_id:Number(threadId), author: au, content: bd, image_data: img, created_at: now});
+          reps2.push({thread_id:Number(threadId), author: au, content: bd, image_data: img, file_data: fdata, file_name: fname, created_at: now});
           localStorage.setItem("classd_fallback_replies", JSON.stringify(reps2));
           // update thread updated_at and reply_count
           var raw2 = localStorage.getItem("classd_fallback_threads");
@@ -256,19 +273,22 @@ try{
           arr2 = arr2.map(function(tt){ if(Number(tt.id)===Number(threadId)){ tt.updated_at = now; tt.reply_count = Number(tt.reply_count||0)+1; } return tt; });
           localStorage.setItem("classd_fallback_threads", JSON.stringify(arr2));
           document.getElementById("replyBody").value = "";
-          document.getElementById("imageUpload").value = "";
-          document.getElementById("imageData").value = "";
+          
           // repaint
           reps2 = reps2.filter(function(x){return Number(x.thread_id)===Number(threadId);}).sort(function(a,b){return String(a.created_at).localeCompare(String(b.created_at));});
           var i=1;
           bodyEl.innerHTML = reps2.map(function(p){
-            return "<tr>"
-              +"<td>#"+(i++)+"</td>"
-              +"<td>"+esc(p.author||"")+"</td>"
-              +"<td>"+(esc(p.content||"") + (p.image_data ? "<div class=\\\"imgwrap\\\"><img src=\\\""+esc(p.image_data)+"\\\" /></div>" : ""))+"</td>"
-              +"<td>"+fmt(p.created_at)+"</td>"
-              +"</tr>";
+            return "<div class=\\\"reply\\\">"
+              +"<div class=\\\"reply-head\\\"><span class=\\\"num\\\">#"+(i++)+" "+esc(p.author||"")+"</span><span class=\\\"time\\\">"+fmt(p.created_at)+"</span></div>"
+              +"<div class=\\\"reply-body\\\">"+(esc(p.content||"") + (p.image_data ? "<div class=\\\"imgwrap\\\"><img src=\\\""+esc(p.image_data)+"\\\" /></div>" : "") + (p.file_data ? "<div class=\\\"filewrap\\\"><a href=\\\""+esc(p.file_data)+"\\\" download=\\\""+esc(p.file_name||'添付ファイル')+"\\\">"+esc(p.file_name||'添付ファイル')+"</a></div>" : ""))+"</div>"
+              +"</div>";
           }).join("");
+          try{
+            var pvsrc2 = reps2.length>0 ? (reps2[reps2.length-1].content||"") : (t.content||"");
+            var pv2 = (pvsrc2||"").replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim();
+            if(pv2.length>60) pv2 = pv2.substring(0,60)+"…";
+            metaEl.textContent = "投稿者: "+(t.author||"")+" • 内容: "+(pv2||"—")+" • 作成: "+fmt(t.created_at)+" • 更新: "+fmt(now);
+          }catch(e){}
         });
       }
     })();
