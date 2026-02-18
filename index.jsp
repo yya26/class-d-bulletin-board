@@ -1,6 +1,19 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ page import="java.sql.*,java.util.*" %>
 <%
+String logoutFlag = request.getParameter("logout");
+if("1".equals(logoutFlag)){
+  try{ session.invalidate(); }catch(Exception e){}
+  response.sendRedirect("login.jsp");
+  return;
+}
+Boolean ok = (Boolean)session.getAttribute("loggedIn");
+if(ok == null || !ok){
+  response.sendRedirect("login.jsp");
+  return;
+}
+%>
+<%
 String dbUrl = System.getenv("ORACLE_URL");
 String dbUser = System.getenv("ORACLE_USER");
 String dbPass = System.getenv("ORACLE_PASS");
@@ -66,7 +79,7 @@ try{
       if(rs.next()) totalThreads = rs.getInt(1);
     }
   }
-  String sql = "SELECT t.id,t.title,t.author_name,t.created_at,t.updated_at,c.name AS category,(SELECT COUNT(*) FROM replies r WHERE r.thread_id=t.id) AS reply_count FROM threads t LEFT JOIN categories c ON c.id=t.category_id";
+  String sql = "SELECT t.id,t.title,t.author_name,t.content,t.created_at,t.updated_at,c.name AS category,(SELECT COUNT(*) FROM replies r WHERE r.thread_id=t.id) AS reply_count FROM threads t LEFT JOIN categories c ON c.id=t.category_id";
   List<Object> params = new ArrayList<>();
   List<String> conds = new ArrayList<>();
   if(q.length()>0){
@@ -90,6 +103,7 @@ try{
         row.put("id", rs.getLong("id"));
         row.put("title", rs.getString("title"));
         row.put("author", rs.getString("author_name"));
+        row.put("content", rs.getString("content"));
         row.put("created_at", rs.getTimestamp("created_at"));
         row.put("updated_at", rs.getTimestamp("updated_at"));
         row.put("category", rs.getString("category"));
@@ -110,21 +124,24 @@ try{
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Classroom 掲示板 - スレッド一覧</title>
-  <link rel="stylesheet" href="<%=request.getContextPath()%>/Classroom_Keijiban1111/styles.css" />
+  <link rel="stylesheet" href="<%=request.getContextPath()%>/css/indexdesign.css" />
   <style>
     .container{max-width:100%; margin:0; padding:0 16px;}
     .card{width:100%;}
-    table{width:100%;}
+    table{width:100%; table-layout:fixed;}
     th, td{vertical-align:middle;}
-    td:nth-child(1), td:nth-child(4){text-align:center;}
+    td:nth-child(1){text-align:center;}
     td:nth-child(3){text-align:left;}
+    td:nth-child(4){text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+    td:nth-child(5){text-align:center;}
     .header .brand{display:flex; justify-content:space-between; align-items:flex-end;}
     .top-actions{display:flex; gap:8px; margin-left:auto;}
     .table-head{background:#eaf2ff; border:1px solid #d6e4ff; border-top-left-radius:12px; border-top-right-radius:12px; padding:10px 16px; color:#334155; font-weight:600;}
     table thead th{background:#eef2ff; border-bottom:1px solid #e5e7eb;}
-    thead th:nth-child(1), thead th:nth-child(4), thead th:nth-child(5){text-align:center;}
+    thead th:nth-child(1), thead th:nth-child(5), thead th:nth-child(6){text-align:center;}
     thead th:nth-child(2){text-align:center;}
     thead th:nth-child(3){text-align:left;}
+    thead th:nth-child(4){text-align:left;}
     #threadBody tr td{padding-top:12px; padding-bottom:12px;}
     #threadBody .sub{margin-top:4px; font-size:12px; color:#64748b;}
     #threadBody .badge{background:#f1f5f9; border:1px solid #e2e8f0; padding:2px 6px; border-radius:999px;}
@@ -135,39 +152,31 @@ try{
   <div class="container">
     <div class="header">
       <div class="brand">
-        <div>
-          <h1>Classroom 掲示板</h1>
-          <small>Class-D (HTML/CSS/java/SQL) • Threads: <%= totalThreads %></small>
-        </div>
-        <div class="top-actions">
-          <a class="btn primary" href="new.jsp">+ 新規スレッド</a>
-          <a class="btn danger" href="logout">ログアウト</a>
-          <form method="get" style="display:inline" onsubmit="return resetConfirm()">
-            <input type="hidden" name="reset" value="1" />
-            <button class="btn secondary danger" type="submit">Reset Data</button>
-          </form>
-        </div>
-      </div>
+
+  <div class="brand-left">
+    <h1>CLASSROOM 掲示板</h1>
+  </div>
+
+  <div class="header-right-gif">
+    <img src="images/qubynewgif.gif" alt="excited">
+  </div>
+
+  <div class="top-actions">
+    <a class="btn primary" href="new.jsp">+ 新規スレッド</a>
+    <a class="btn danger" href="index.jsp?logout=1">ログアウト</a>
+    <form method="get" style="display:inline" onsubmit="return resetConfirm()">
+      <input type="hidden" name="reset" value="1" />
+      <button class="btn secondary danger" type="submit">Reset Data</button>
+    </form>
+  </div>
+
+</div>
+
       <div class="navbar">
         <div class="right">
           <form method="get" class="search">
             <input type="text" name="q" value="<%= q %>" placeholder="検索..." />
-            <select name="cat">
-              <option value="ALL"<%= "ALL".equalsIgnoreCase(cat)?" selected":"" %>>すべて</option>
-              <%
-              Set<String> catsSet = new LinkedHashSet<>();
-              for(Map<String,Object> t: threads){
-                String cn = (String)t.get("category");
-                if(cn!=null && cn.trim().length()>0) catsSet.add(cn.trim());
-              }
-              java.util.List<String> cats = new java.util.ArrayList<>(catsSet);
-              java.util.Collections.sort(cats, java.text.Collator.getInstance(java.util.Locale.JAPANESE));
-              for(String c: cats){
-              %>
-              <option value="<%= c %>"<%= c.equals(cat)?" selected":"" %>><%= c %></option>
-              <% } %>
-            </select>
-            <button class="btn secondary" type="submit">Filter</button>
+            
           </form>
         </div>
       </div>
@@ -175,11 +184,12 @@ try{
     <div class="main">
       <div class="card">
         <div class="pad">
-          <h2>Classroom 掲示板</h2>
+          
           <div class="table-head">スレッド一覧</div>
           <table style="table-layout:fixed">
         <colgroup>
           <col style="width:70px" />
+          <col />
           <col />
           <col style="width:140px" />
           <col style="width:80px" />
@@ -189,6 +199,7 @@ try{
           <tr>
             <th style="width:70px">番号</th>
             <th>カテゴリ</th>
+            <th>内容</th>
             <th style="width:140px">名前</th>
             <th style="width:80px">返信</th>
             <th style="width:170px">最終更新</th>
@@ -200,6 +211,14 @@ try{
             long id = (Long)t.get("id");
             String title = (String)t.get("title");
             String author = (String)t.get("author");
+            String content = (String)t.get("content");
+            String preview = "";
+            if(content!=null){
+              try{
+                preview = content.replaceAll("<[^>]*>", " ").replaceAll("\\s+", " ").trim();
+                if(preview.length()>60) preview = preview.substring(0,60) + "…";
+              }catch(Exception e){ preview = content; }
+            }
             int replies = (Integer)t.get("reply_count");
             java.sql.Timestamp upd = (java.sql.Timestamp)t.get("updated_at");
             java.sql.Timestamp crt = (java.sql.Timestamp)t.get("created_at");
@@ -209,6 +228,7 @@ try{
           <tr onclick="location.href='thread.jsp?id=<%= id %>'">
             <td style="width:70px"><%= id %></td>
             <td style="text-align:center"><%= catName==null?"—":catName %></td>
+            <td><%= preview %></td>
             <td style="width:140px"><%= author %></td>
             <td style="width:80px"><%= replies %></td>
             <td style="width:170px"><%= new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(show) %></td>
@@ -216,7 +236,7 @@ try{
           <%
           }
           %>
-          <tr id="emptyTipRow"><td colspan="5" style="text-align:center; color:#64748b">Tip: スレッドをクリックして開きます。</td></tr>
+          <tr id="emptyTipRow"><td colspan="6" style="text-align:center; color:#64748b">Tip: スレッドをクリックして開きます。</td></tr>
         </tbody>
       </table>
         </div>
@@ -259,9 +279,12 @@ try{
       var rows=list.map(function(t){
         var rid=esc(String(t.id));
         var replies=Number(t.reply_count||0);
+        var content=(t.content||"").replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim();
+        if(content.length>60) content=content.substring(0,60)+"…";
         return "<tr onclick=\"location.href='thread.jsp?id="+rid+"'\">"
           +"<td style=\"width:70px\">"+rid+"</td>"
           +"<td style=\\\"text-align:center\\\">"+esc(t.category||"—")+"</td>"
+          +"<td>"+esc(content||"")+"</td>"
           +"<td style=\"width:140px\">"+esc(t.author||"")+"</td>"
           +"<td style=\"width:80px\">"+replies+"</td>"
           +"<td style=\"width:170px\">"+fmt(t.updated_at||t.created_at)+"</td>"
@@ -296,7 +319,7 @@ try{
       }
       window.resetConfirm = function(){
         try{
-          var ok = confirm("Reset गर्दा सबै दर्ज गरिएको डाटा मेटिन्छ। जारी राख्ने?");
+          var ok = confirm("リセットすると、すべての入力データが消去されます。続行しますか");
           if(!ok) return false;
           clearFallback();
           return true;
