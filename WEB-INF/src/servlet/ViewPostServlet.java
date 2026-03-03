@@ -1,19 +1,23 @@
 package servlet;
 
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.*;
+
 import java.io.IOException;
 
 public class ViewPostServlet extends HttpServlet {
+
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+
         String id = req.getParameter("id");
         if (id == null || id.isEmpty()) {
-            resp.sendRedirect(req.getContextPath() + "/index.jsp");
+            resp.sendRedirect(req.getContextPath() + "/board");
             return;
         }
-        resp.sendRedirect(req.getContextPath() + "/thread.jsp?id=" + id);
+
+        // Forward to JSP (keeps URL as /thread?id=...)
+        req.getRequestDispatcher("/thread.jsp").forward(req, resp);
     }
 }

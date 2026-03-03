@@ -15,6 +15,7 @@ public class NewThreadServlet extends HttpServlet {
         String title = param(req, "title");
         String author = param(req, "author");
         String body = param(req, "body");
+
         if (category.isEmpty() || title.isEmpty() || author.isEmpty() || body.isEmpty()) {
             resp.sendRedirect(req.getContextPath() + "/new.jsp");
             return;
@@ -28,7 +29,7 @@ public class NewThreadServlet extends HttpServlet {
                 }
             }
             if (catId == null) {
-                try (PreparedStatement ps = con.prepareStatement("INSERT INTO categories(name) VALUES(?)", Statement.RETURN_GENERATED_KEYS)) {
+                try (PreparedStatement ps = con.prepareStatement("INSERT INTO categories(name) VALUES(?)", new String[] { "id" })) {
                     ps.setString(1, category);
                     ps.executeUpdate();
                     try (ResultSet rs = ps.getGeneratedKeys()) {
@@ -37,7 +38,7 @@ public class NewThreadServlet extends HttpServlet {
                 }
             }
             long threadId = 0L;
-            try (PreparedStatement ps = con.prepareStatement("INSERT INTO threads(category_id,title,author_name,content,created_at,updated_at) VALUES(?,?,?,?,SYSDATE,SYSDATE)", Statement.RETURN_GENERATED_KEYS)) {
+            try (PreparedStatement ps = con.prepareStatement("INSERT INTO threads(category_id,title,author_name,content,created_at,updated_at) VALUES(?,?,?,?,SYSDATE,SYSDATE)", new String[] { "id" })) {
                 if (catId == null) ps.setNull(1, Types.NUMERIC); else ps.setLong(1, catId);
                 ps.setString(2, title);
                 ps.setString(3, author);
@@ -55,7 +56,7 @@ public class NewThreadServlet extends HttpServlet {
                     ps.executeUpdate();
                 }
             }
-            resp.sendRedirect(req.getContextPath() + "/thread.jsp?id=" + threadId);
+            resp.sendRedirect(req.getContextPath() + "/board");
         } catch (SQLException e) {
             throw new ServletException(e);
         }
