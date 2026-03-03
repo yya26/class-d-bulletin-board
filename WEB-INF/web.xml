@@ -23,12 +23,13 @@
     <url-pattern>/new-thread</url-pattern>
   </servlet-mapping>
 
+  <!-- ✅ FIXED REPLY SERVLET -->
   <servlet>
-    <servlet-name>AddPostServlet</servlet-name>
-    <servlet-class>servlet.AddPostServlet</servlet-class>
+    <servlet-name>ReplyAddServlet</servlet-name>
+    <servlet-class>servlet.ReplyAddServlet</servlet-class>
   </servlet>
   <servlet-mapping>
-    <servlet-name>AddPostServlet</servlet-name>
+    <servlet-name>ReplyAddServlet</servlet-name>
     <url-pattern>/reply-add</url-pattern>
   </servlet-mapping>
 
@@ -58,5 +59,27 @@
     <servlet-name>LogoutServlet</servlet-name>
     <url-pattern>/logout</url-pattern>
   </servlet-mapping>
+
+  <servlet>
+    <servlet-name>DeleteThreadServlet</servlet-name>
+    <servlet-class>servlet.DeleteThreadServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>DeleteThreadServlet</servlet-name>
+    <url-pattern>/deleteThread</url-pattern>
+  </servlet-mapping>
+
+  <welcome-file-list>
+    <welcome-file>login.jsp</welcome-file>
+  </welcome-file-list>
+
+  <servlet>
+  <servlet-name>RegisterServlet</servlet-name>
+  <servlet-class>servlet.RegisterServlet</servlet-class>
+</servlet>
+<servlet-mapping>
+  <servlet-name>RegisterServlet</servlet-name>
+  <url-pattern>/register</url-pattern>
+</servlet-mapping>
 
 </web-app>
