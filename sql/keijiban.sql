@@ -82,3 +82,82 @@ SELECT thread_id, author_name, content, created_at, file_name
 FROM replies
 ORDER BY created_at DESC;
 
+INSERT INTO categories (id, name) VALUES (1, 'Announcement');
+
+DELETE FROM replies;
+DELETE FROM threads;
+DELETE FROM categories;
+DELETE FROM users;
+COMMIT;
+
+pro.testdata
+INSERT INTO categories (id, name) VALUES (1, 'Announcement');
+INSERT INTO categories (id, name) VALUES (2, 'Question');
+INSERT INTO categories (id, name) VALUES (3, 'Homework');
+INSERT INTO categories (id, name) VALUES (4, 'Discussion');
+INSERT INTO categories (id, name) VALUES (5, 'Others');
+
+INSERT INTO users (id, username, password) VALUES (1, 'yya', 'pass123');
+INSERT INTO users (id, username, password) VALUES (2, 'kabi', 'test123');
+INSERT INTO users (id, username, password) VALUES (3, 'ridoy', 'demo123');
+
+INSERT INTO threads (id, category_id, title, author_name, content, file_name)
+VALUES (101, 1, 'デモ用掲示板へようこそ', 'yya',
+        'これはGoogle Classroom風のWebアプリのデモ掲示板です。よろしくお願いします！',
+        NULL);
+
+INSERT INTO threads (id, category_id, title, author_name, content, file_name)
+VALUES (102, 2, 'JSPで一覧が表示されない問題', 'ridoy',
+        'スレッド一覧が表示されません。Servletのforward処理を確認中です。',
+        NULL);
+
+INSERT INTO threads (id, category_id, title, author_name, content, file_name)
+VALUES (103, 3, '第3回レポート提出', 'kabi',
+        'レポートをPDFで提出します。確認をお願いします。',
+        'report3.pdf');
+
+INSERT INTO threads (id, category_id, title, author_name, content, file_name)
+VALUES (104, 4, 'Javaの勉強方法について', 'yya',
+        'みんなはどのようにJavaとSQLを勉強していますか？おすすめがあれば教えてください。',
+        NULL);
+
+INSERT INTO threads (id, category_id, title, author_name, content, file_name)
+VALUES (105, 2, 'Oracleエラー ORA-00904について', 'ridoy',
+        '無効な識別子エラーが発生しました。列名を再確認しています。',
+        NULL);
+
+pro.replies
+INSERT INTO replies (id, thread_id, author_name, content, file_name)
+VALUES (1001, 101, 'ridoy',
+        'いいですね！完成が楽しみです。',
+        NULL);
+
+INSERT INTO replies (id, thread_id, author_name, content, file_name)
+VALUES (1002, 102, 'yya',
+        'request.setAttributeの設定を確認してみてください。',
+        NULL);
+
+INSERT INTO replies (id, thread_id, author_name, content, file_name)
+VALUES (1003, 102, 'kabi',
+        'DB接続情報もチェックした方がいいかもしれません。',
+        NULL);
+
+INSERT INTO replies (id, thread_id, author_name, content, file_name)
+VALUES (1004, 103, 'ridoy',
+        '提出ありがとうございます。確認します。',
+        NULL);
+
+INSERT INTO replies (id, thread_id, author_name, content, file_name)
+VALUES (1005, 103, 'yya',
+        '補足資料もアップロードしました。',
+        'appendix.png');
+
+INSERT INTO replies (id, thread_id, author_name, content, file_name)
+VALUES (1006, 104, 'kabi',
+        '私は毎日少しずつコードを書く練習をしています。',
+        NULL);
+        
+commit;
+
+SELECT COUNT(*) FROM threads;
+SELECT COUNT(*) FROM replies;
