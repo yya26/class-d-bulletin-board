@@ -38,7 +38,7 @@
   <hr style="margin:20px 0;">
 
   <div style="text-align:center;">
-    <p>アカウントをお持ちでないですか？</p>
+    <p>アカウントをお持ちでないですか？</p></br>
 
     <!-- ✅ SAFE: link styled like a button -->
     <a class="login-button"

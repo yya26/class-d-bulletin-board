@@ -37,6 +37,9 @@ if(cat == null) cat = "";
 
         <div class="brand-left">
           <h1>CLASSROOM 掲示板</h1>
+          <div class="header-right-gif">
+            <img src="images/qubynewgif.gif" alt="excited">
+          </div>
         </div>
 
         <div class="top-actions">
