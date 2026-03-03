@@ -8,7 +8,6 @@ if(dbUrl==null) dbUrl="jdbc:oracle:thin:@//localhost:1521/orcl";
 if(dbUser==null) dbUser="info";
 if(dbPass==null) dbPass="pro";
 List<String> categories = new ArrayList<>();
-boolean dbOk = true;
 try{
   Class.forName("oracle.jdbc.OracleDriver");
   try(Connection con = DriverManager.getConnection(dbUrl, dbUser, dbPass)){
@@ -17,69 +16,9 @@ try{
       while(rs.next()) categories.add(rs.getString(1));
     }
   }
-  if("POST".equalsIgnoreCase(request.getMethod())){
-    String category = Optional.ofNullable(request.getParameter("category")).orElse("").trim();
-    String title = Optional.ofNullable(request.getParameter("title")).orElse("").trim();
-    String author = Optional.ofNullable(request.getParameter("author")).orElse("").trim();
-    String body = Optional.ofNullable(request.getParameter("body")).orElse("").trim();
-    String imageData = Optional.ofNullable(request.getParameter("imageData")).orElse("").trim();
-    String fileData = Optional.ofNullable(request.getParameter("fileData")).orElse("").trim();
-    String fileName = Optional.ofNullable(request.getParameter("fileName")).orElse("").trim();
-    if(imageData.length()>0){
-      body = body + "<div class='imgwrap'><img src='"+imageData+"' /></div>";
-    }
-    if(fileData.length()>0){
-      String fname = (fileName==null||fileName.isEmpty()) ? "添付ファイル" : fileName.replaceAll("[<>\"']", "");
-      body = body + "<div class='filewrap'><a href='"+fileData+"' download='"+fname+"'>"+fname+"</a></div>";
-    }
-    if(category.length()>0 && title.length()>0 && author.length()>0 && body.length()>0){
-      Long catId = null;
-      try(PreparedStatement ps = con.prepareStatement("SELECT id FROM categories WHERE name=?")){
-        ps.setString(1, category);
-        try(ResultSet rs = ps.executeQuery()){
-          if(rs.next()) catId = rs.getLong(1);
-        }
-      }
-      if(catId==null){
-        try(PreparedStatement ps = con.prepareStatement("INSERT INTO categories(name) VALUES(?)", Statement.RETURN_GENERATED_KEYS)){
-          ps.setString(1, category);
-          ps.executeUpdate();
-          try(ResultSet rs = ps.getGeneratedKeys()){
-            if(rs.next()) catId = rs.getLong(1);
-          }
-        }
-      }
-      long threadId = 0L;
-      try(PreparedStatement ps = con.prepareStatement("INSERT INTO threads(category_id,title,author_name,content,created_at,updated_at) VALUES(?,?,?,?,SYSDATE,SYSDATE)", Statement.RETURN_GENERATED_KEYS)){
-        if(catId==null) ps.setNull(1, Types.NUMERIC); else ps.setLong(1, catId);
-        ps.setString(2, title);
-        ps.setString(3, author);
-        ps.setString(4, body);
-        ps.executeUpdate();
-        try(ResultSet rs = ps.getGeneratedKeys()){
-          if(rs.next()) threadId = rs.getLong(1);
-        }
-      }
-      if(threadId>0){
-        try(PreparedStatement ps = con.prepareStatement("INSERT INTO replies(thread_id,author_name,content,created_at) VALUES(?,?,?,SYSDATE)")){
-          ps.setLong(1, threadId);
-          ps.setString(2, author);
-          ps.setString(3, body);
-          ps.executeUpdate();
-        }
-        response.sendRedirect("thread.jsp?id=" + threadId);
-        return;
-      }
-    }
-  }
 }
 } catch(Exception ex){
-  dbOk = false;
   categories = java.util.Arrays.asList("お知らせ","宿題・提出物","授業のポイント","質問コーナー","自由メッセージ");
-  if("POST".equalsIgnoreCase(request.getMethod())){
-    response.sendRedirect("index.jsp");
-    return;
-  }
 }
 %>
 <!doctype html>
@@ -115,7 +54,7 @@ try{
       </div>
 
       <div class="navbar">
-        <a class="btn secondary back-btn" href="index.jsp">
+        <a class="btn secondary back-btn" href="board">
           <span class="arrow">←</span> 戻る
         </a>
       </div>
@@ -129,7 +68,7 @@ try{
         <div class="pad">
           <h2></h2>
           
-          <form method="post" id="newThreadForm">
+          <form method="post" id="newThreadForm" action="<%=request.getContextPath()%>/new-thread">
             <label class="label" for="category">カテゴリ</label>
             <select id="category" name="category" required>
               <option value="">選択...</option>
@@ -163,75 +102,5 @@ try{
       </div>
     </div>
   </div>
-  <script>
-    (function(){
-      var form=document.getElementById("newThreadForm");
-      if(!form) return;
-      var imgInput=document.getElementById("imageUpload");
-      var imgData=document.getElementById("imageData");
-      if(imgInput && imgData){
-        imgInput.addEventListener("change", function(){
-          try{
-            var f=this.files && this.files[0];
-            if(!f){ imgData.value=""; return; }
-            if(!/^image\//.test(f.type)){ alert("画像ファイルを選択してください"); this.value=""; imgData.value=""; return; }
-            if(f.size>2*1024*1024){ alert("画像サイズは2MB以下にしてください"); this.value=""; imgData.value=""; return; }
-            var r=new FileReader();
-            r.onload=function(){ imgData.value = r.result || ""; };
-            r.readAsDataURL(f);
-          }catch(e){ imgData.value=""; }
-        });
-      }
-      var fileInput=document.getElementById("fileUpload");
-      var fileData=document.getElementById("fileData");
-      var fileName=document.getElementById("fileName");
-      if(fileInput && fileData && fileName){
-        fileInput.addEventListener("change", function(){
-          try{
-            var f=this.files && this.files[0];
-            if(!f){ fileData.value=""; fileName.value=""; return; }
-            if(f.size>5*1024*1024){ alert("ファイルサイズは5MB以下にしてください"); this.value=""; fileData.value=""; fileName.value=""; return; }
-            var r=new FileReader();
-            r.onload=function(){ fileData.value = r.result || ""; fileName.value = f.name || ""; };
-            r.readAsDataURL(f);
-          }catch(e){ fileData.value=""; fileName.value=""; }
-        });
-      }
-      form.addEventListener("submit", function(){
-        try{
-          var cat=document.getElementById("category")?.value||"";
-          var ttl=document.getElementById("title")?.value||"";
-          var au=document.getElementById("author")?.value||"";
-          var bd=document.getElementById("body")?.value||"";
-          var img=document.getElementById("imageData")?.value||"";
-          var fdata=document.getElementById("fileData")?.value||"";
-          var fname=document.getElementById("fileName")?.value||"";
-          if(!cat||!ttl||!au||!bd) return;
-          var raw=localStorage.getItem("classd_fallback_threads");
-          var arr=[]; try{arr=JSON.parse(raw)||[];}catch(e){arr=[];}
-          var now=new Date().toISOString();
-          var nextId=arr.length>0 ? Math.max.apply(null, arr.map(function(x){return Number(x.id)||0;}))+1 : 1;
-          var full = bd;
-          if(img) full += "<div class='imgwrap'><img src='"+img+"' /></div>";
-          if(fdata) full += "<div class='filewrap'><a href='"+fdata+"' download='"+(fname||"添付ファイル")+"'>"+(fname||"添付ファイル")+"</a></div>";
-          arr.push({id: nextId, title: ttl, category: cat, author: au, content: full, created_at: now, updated_at: now, reply_count: 0});
-          localStorage.setItem("classd_fallback_threads", JSON.stringify(arr));
-          localStorage.setItem("classd_last_thread_id", String(nextId));
-        }catch(e){}
-      });
-    })();
-  </script>
-  <%
-    if(!dbOk && "POST".equalsIgnoreCase(request.getMethod())){
-  %>
-  <script>
-    (function(){
-      var last = localStorage.getItem("classd_last_thread_id");
-      if(last){ location.href = "thread.jsp?id=" + encodeURIComponent(last); }
-    })();
-  </script>
-  <%
-    }
-  %>
 </body>
 </html>

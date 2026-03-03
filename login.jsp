@@ -1,52 +1,54 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
-<%
-String error = null;
-if("POST".equalsIgnoreCase(request.getMethod())){
-  String pw = request.getParameter("password");
-  if(pw == null) pw = "";
-  if("1234".equals(pw)){
-    session.setAttribute("loggedIn", Boolean.TRUE);
-    response.sendRedirect("index.jsp");
-    return;
-  } else {
-    error = "パスワードが正しくありません";
-  }
-}
-%>
 <!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Classroom 掲示板 - ログイン</title>
-  <!-- CSS ফাইলের সঠিক পথ -->
   <link rel="stylesheet" href="<%=request.getContextPath()%>/css/logindesign.css" />
 </head>
 <body>
 
-  <!-- LOGIN CARD -->
-  <div class="login-card">
-    <h2 class="login-title">Classroom 掲示板</h2>
-    <% if(error != null){ %>
-      <div style="color:#dc2626; margin-bottom:10px; text-align:center;"><%= error %></div>
-    <% } %>
+<div class="login-card">
+  <h2 class="login-title">Classroom 掲示板</h2>
 
-    <form class="login-form" action="login.jsp" method="post" autocomplete="off">
+  <% if(request.getParameter("error") != null){ %>
+    <div style="color:#dc2626; margin-bottom:10px; text-align:center;">
+      ユーザーIDまたはパスワードが正しくありません
+    </div>
+  <% } %>
 
-      <label for="user-id">ユーザーID</label>
-      <input type="text" id="user-id" name="user-id" placeholder="User ID" required />
+  <form class="login-form"
+        action="<%=request.getContextPath()%>/login"
+        method="post"
+        autocomplete="off">
 
-      <label for="password">パスワード</label>
-      <input type="password" id="password" name="password" placeholder="Password" required />
+    <label for="username">ユーザーID</label>
+    <input type="text" id="username" name="username" required />
 
-      <div class="login-actions">
-        <button type="submit" class="login-button">ログイン</button>
-      </div>
+    <label for="password">パスワード</label>
+    <input type="password" id="password" name="password" required />
 
-      
-    </form>
+    <div class="login-actions">
+      <button type="submit" class="login-button">ログイン</button>
+    </div>
+
+  </form>
+
+  <hr style="margin:20px 0;">
+
+  <div style="text-align:center;">
+    <p>アカウントをお持ちでないですか？</p>
+
+    <!-- ✅ SAFE: link styled like a button -->
+    <a class="login-button"
+       style="background:#16a34a; display:inline-block; text-decoration:none; text-align:center;"
+       href="<%=request.getContextPath()%>/register.jsp">
+      新規登録
+    </a>
   </div>
 
-</body>
+</div>
 
+</body>
 </html>
