@@ -1,1 +1,12 @@
+# Java
 *.class
+
+# Libraries
+*.jar
+
+# Upload files
+uploads/
+
+# OS
+.DS_Store
+Thumbs.db
