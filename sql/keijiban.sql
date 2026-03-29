@@ -84,80 +84,188 @@ ORDER BY created_at DESC;
 
 INSERT INTO categories (id, name) VALUES (1, 'Announcement');
 
+-- 0) Clean existing demo data (FK-safe order)
 DELETE FROM replies;
 DELETE FROM threads;
 DELETE FROM categories;
 DELETE FROM users;
 COMMIT;
 
-pro.testdata
-INSERT INTO categories (id, name) VALUES (1, 'Announcement');
-INSERT INTO categories (id, name) VALUES (2, 'Question');
-INSERT INTO categories (id, name) VALUES (3, 'Homework');
-INSERT INTO categories (id, name) VALUES (4, 'Discussion');
-INSERT INTO categories (id, name) VALUES (5, 'Others');
+-- 1) Users (login accounts)
+INSERT INTO users (username, password) VALUES ('yya',   'pass123');
+INSERT INTO users (username, password) VALUES ('ridoy', 'test123');
+INSERT INTO users (username, password) VALUES ('kabi',  'demo123');
+COMMIT;
 
-INSERT INTO users (id, username, password) VALUES (1, 'yya', 'pass123');
-INSERT INTO users (id, username, password) VALUES (2, 'kabi', 'test123');
-INSERT INTO users (id, username, password) VALUES (3, 'ridoy', 'demo123');
+-- 2) Categories (use your original Japanese categories)
+INSERT INTO categories(name) VALUES('お知らせ');
+INSERT INTO categories(name) VALUES('宿題・提出物');
+INSERT INTO categories(name) VALUES('授業のポイント');
+INSERT INTO categories(name) VALUES('質問コーナー');
+INSERT INTO categories(name) VALUES('自由メッセージ');
+INSERT INTO categories(name) VALUES('忘れ物・落とし物');
+INSERT INTO categories(name) VALUES('先生からのメッセージ');
+COMMIT;
 
-INSERT INTO threads (id, category_id, title, author_name, content, file_name)
-VALUES (101, 1, 'デモ用掲示板へようこそ', 'yya',
-        'これはGoogle Classroom風のWebアプリのデモ掲示板です。よろしくお願いします！',
-        NULL);
+-- Helper: use category id by name
+-- (SELECT id FROM categories WHERE name='質問コーナー')
 
-INSERT INTO threads (id, category_id, title, author_name, content, file_name)
-VALUES (102, 2, 'JSPで一覧が表示されない問題', 'ridoy',
-        'スレッド一覧が表示されません。Servletのforward処理を確認中です。',
-        NULL);
+-- 3) Threads (7 threads, set updated_at too)
+INSERT INTO threads (category_id, title, author_name, content, created_at, updated_at, file_name)
+VALUES (
+  (SELECT id FROM categories WHERE name='お知らせ'),
+  '【デモ】掲示板へようこそ（機能一覧）',
+  'yya',
+  'この掲示板は「スレッド投稿」「返信」「編集・削除（投稿者のみ）」「カテゴリ」「添付ファイル」に対応しています。発表用のデモデータです。',
+  SYSTIMESTAMP, SYSTIMESTAMP, NULL
+);
 
-INSERT INTO threads (id, category_id, title, author_name, content, file_name)
-VALUES (103, 3, '第3回レポート提出', 'kabi',
-        'レポートをPDFで提出します。確認をお願いします。',
-        'report3.pdf');
+INSERT INTO threads (category_id, title, author_name, content, created_at, updated_at, file_name)
+VALUES (
+  (SELECT id FROM categories WHERE name='質問コーナー'),
+  'JSPで一覧が表示されない（forward確認）',
+  'ridoy',
+  'スレッド一覧が表示されません。BoardServletでSQL→setAttribute→forwardの流れを確認中です。',
+  SYSTIMESTAMP, SYSTIMESTAMP, NULL
+);
 
-INSERT INTO threads (id, category_id, title, author_name, content, file_name)
-VALUES (104, 4, 'Javaの勉強方法について', 'yya',
-        'みんなはどのようにJavaとSQLを勉強していますか？おすすめがあれば教えてください。',
-        NULL);
+INSERT INTO threads (category_id, title, author_name, content, created_at, updated_at, file_name)
+VALUES (
+  (SELECT id FROM categories WHERE name='宿題・提出物'),
+  '第3回レポート提出（PDF添付）',
+  'kabi',
+  '課題レポートを提出します。添付ファイル機能のデモも兼ねています。',
+  SYSTIMESTAMP, SYSTIMESTAMP, 'report3.pdf'
+);
 
-INSERT INTO threads (id, category_id, title, author_name, content, file_name)
-VALUES (105, 2, 'Oracleエラー ORA-00904について', 'ridoy',
-        '無効な識別子エラーが発生しました。列名を再確認しています。',
-        NULL);
+INSERT INTO threads (category_id, title, author_name, content, created_at, updated_at, file_name)
+VALUES (
+  (SELECT id FROM categories WHERE name='授業のポイント'),
+  '正規化のポイントまとめ（1NF?3NF）',
+  'yya',
+  '1NF: 繰り返し属性をなくす / 2NF: 部分関数従属をなくす / 3NF: 推移関数従属をなくす、という流れで理解しました。',
+  SYSTIMESTAMP, SYSTIMESTAMP, NULL
+);
 
-pro.replies
-INSERT INTO replies (id, thread_id, author_name, content, file_name)
-VALUES (1001, 101, 'ridoy',
-        'いいですね！完成が楽しみです。',
-        NULL);
+INSERT INTO threads (category_id, title, author_name, content, created_at, updated_at, file_name)
+VALUES (
+  (SELECT id FROM categories WHERE name='質問コーナー'),
+  'ORA-00904（無効な識別子）エラー',
+  'ridoy',
+  '列名のスペルやテーブル別名（エイリアス）を間違えると発生します。DESCで列名を確認します。',
+  SYSTIMESTAMP, SYSTIMESTAMP, NULL
+);
 
-INSERT INTO replies (id, thread_id, author_name, content, file_name)
-VALUES (1002, 102, 'yya',
-        'request.setAttributeの設定を確認してみてください。',
-        NULL);
+INSERT INTO threads (category_id, title, author_name, content, created_at, updated_at, file_name)
+VALUES (
+  (SELECT id FROM categories WHERE name='自由メッセージ'),
+  '発表前チェックリスト（デモ手順）',
+  'kabi',
+  '①ログイン → ②スレッド作成 → ③返信 → ④編集/削除 → ⑤添付ファイル確認 の順で発表します。',
+  SYSTIMESTAMP, SYSTIMESTAMP, NULL
+);
 
-INSERT INTO replies (id, thread_id, author_name, content, file_name)
-VALUES (1003, 102, 'kabi',
-        'DB接続情報もチェックした方がいいかもしれません。',
-        NULL);
+INSERT INTO threads (category_id, title, author_name, content, created_at, updated_at, file_name)
+VALUES (
+  (SELECT id FROM categories WHERE name='忘れ物・落とし物'),
+  'USBメモリ見つけました',
+  'yya',
+  '教室にUSBメモリが落ちていました。心当たりがある人は連絡してください。',
+  SYSTIMESTAMP, SYSTIMESTAMP, 'usb_photo.png'
+);
 
-INSERT INTO replies (id, thread_id, author_name, content, file_name)
-VALUES (1004, 103, 'ridoy',
-        '提出ありがとうございます。確認します。',
-        NULL);
+COMMIT;
 
-INSERT INTO replies (id, thread_id, author_name, content, file_name)
-VALUES (1005, 103, 'yya',
-        '補足資料もアップロードしました。',
-        'appendix.png');
+-- 4) Replies (insert safely by selecting thread_id using title)
+-- Thread: 【デモ】掲示板へようこそ（機能一覧）
+INSERT INTO replies (thread_id, author_name, content, created_at, file_name)
+VALUES (
+  (SELECT id FROM threads WHERE title='【デモ】掲示板へようこそ（機能一覧）'),
+  'ridoy',
+  'いいですね！ログインユーザーと投稿者が一致すると編集・削除が表示される点も説明できそうです。',
+  SYSTIMESTAMP, NULL
+);
 
-INSERT INTO replies (id, thread_id, author_name, content, file_name)
-VALUES (1006, 104, 'kabi',
-        '私は毎日少しずつコードを書く練習をしています。',
-        NULL);
-        
-commit;
+INSERT INTO replies (thread_id, author_name, content, created_at, file_name)
+VALUES (
+  (SELECT id FROM threads WHERE title='【デモ】掲示板へようこそ（機能一覧）'),
+  'kabi',
+  '添付ファイル付き投稿もあるので、デモで見せると印象が良くなります。',
+  SYSTIMESTAMP, NULL
+);
 
-SELECT COUNT(*) FROM threads;
-SELECT COUNT(*) FROM replies;
+-- Thread: JSPで一覧が表示されない（forward確認）
+INSERT INTO replies (thread_id, author_name, content, created_at, file_name)
+VALUES (
+  (SELECT id FROM threads WHERE title='JSPで一覧が表示されない（forward確認）'),
+  'yya',
+  'request.setAttributeのキー名がJSP側と一致しているか確認してみてください。',
+  SYSTIMESTAMP, NULL
+);
+
+INSERT INTO replies (thread_id, author_name, content, created_at, file_name)
+VALUES (
+  (SELECT id FROM threads WHERE title='JSPで一覧が表示されない（forward確認）'),
+  'kabi',
+  'DBが0件だと画面が空になるので、テストデータを入れて確認すると早いです。',
+  SYSTIMESTAMP, NULL
+);
+
+-- Thread: 第3回レポート提出（PDF添付）
+INSERT INTO replies (thread_id, author_name, content, created_at, file_name)
+VALUES (
+  (SELECT id FROM threads WHERE title='第3回レポート提出（PDF添付）'),
+  'yya',
+  '提出ありがとうございます。内容を確認します。',
+  SYSTIMESTAMP, NULL
+);
+
+INSERT INTO replies (thread_id, author_name, content, created_at, file_name)
+VALUES (
+  (SELECT id FROM threads WHERE title='第3回レポート提出（PDF添付）'),
+  'kabi',
+  '補足資料も添付します。',
+  SYSTIMESTAMP, 'appendix.png'
+);
+
+-- Thread: 正規化のポイントまとめ（1NF?3NF）
+INSERT INTO replies (thread_id, author_name, content, created_at, file_name)
+VALUES (
+  (SELECT id FROM threads WHERE title='正規化のポイントまとめ（1NF?3NF）'),
+  'ridoy',
+  '2NFの「部分関数従属」が一番つまずきました。複合主キーのときに起きやすいですね。',
+  SYSTIMESTAMP, NULL
+);
+
+-- Thread: ORA-00904（無効な識別子）エラー
+INSERT INTO replies (thread_id, author_name, content, created_at, file_name)
+VALUES (
+  (SELECT id FROM threads WHERE title='ORA-00904（無効な識別子）エラー'),
+  'yya',
+  'エイリアスを使っている場合は、"T"."COLUMN" の指定が正しいかも確認すると良いです。',
+  SYSTIMESTAMP, NULL
+);
+
+-- Thread: 発表前チェックリスト（デモ手順）
+INSERT INTO replies (thread_id, author_name, content, created_at, file_name)
+VALUES (
+  (SELECT id FROM threads WHERE title='発表前チェックリスト（デモ手順）'),
+  'ridoy',
+  'OKです！私は返信とファイルアップロードのところを説明します。',
+  SYSTIMESTAMP, NULL
+);
+
+-- Thread: USBメモリ見つけました
+INSERT INTO replies (thread_id, author_name, content, created_at, file_name)
+VALUES (
+  (SELECT id FROM threads WHERE title='USBメモリ見つけました'),
+  'kabi',
+  '写真ありがとうございます。心当たりの人に共有します。',
+  SYSTIMESTAMP, NULL
+);
+
+COMMIT;
+
+-- 5) Quick check
+SELECT COUNT(*) AS thread_count FROM threads;
+SELECT COUNT(*) AS reply_count  FROM replies;
